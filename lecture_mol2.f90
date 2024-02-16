@@ -4,6 +4,8 @@ module lecture_mol2
     type, public :: AtomXYZ
         character(len=2) :: atom
         real :: x, y, z
+    contains
+        procedure compute_dist
     end type AtomXYZ
 
     type, public :: Molecule
@@ -13,6 +15,21 @@ module lecture_mol2
     end type Molecule
 
 contains
+
+    ! Compute L2 norm between two atoms in picometers
+    real function compute_dist(self, other)
+        class(AtomXYZ), intent(in) :: self, other
+
+        real :: dx, dy, dz
+
+        dx = 10.0 * (self%x - other%x)
+        dy = 10.0 * (self%y - other%y)
+        dz = 10.0 * (self%z - other%z)
+
+        ! Return distance
+        compute_dist = sqrt(dx * dx + dy * dy + dz * dz)
+
+    end function compute_dist
 
     type(Molecule) function lecture_fichier_mol2(filename)
         ! Signature

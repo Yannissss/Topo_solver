@@ -59,19 +59,16 @@ contains
             read (covfile, '(a)', iostat = end), line
             if(end/=0)then
                 exit
-            else
-                ! print '(a,a,a,a,b)', "Line read: '", trim(line), "' '", test_comment, "'"
             end if
         end do
 
         ! read data
         i = 1
         do
-            read (covfile, '(i3, a2, i3, i3, i3)', iostat = end), cov_atom_num, cov_atom, cov_simple, cov_double, cov_triple
+            read (covfile, '(i3, a2, i3, i3, i3)', iostat = end), &
+                cov_atom_num, cov_atom, cov_simple, cov_double, cov_triple
             if (end /= 0) then
-                ! print '(a, i3)', "End status: ", end
-                num_cov = i - 1
-                ! print '(a, i3, i3)', "Num cov / i : ", num_cov, i
+                num_cov = i - 1 ! Store num of covalence read
                 exit
             else
                 table%data(i)%atom_num = cov_atom_num
@@ -82,14 +79,6 @@ contains
                 i = i + 1
             end if
         end do
-
-        ! do i = 1, 3
-        !     print *, "Which elem do you CoV radii of ?"
-        !     read('(a2)'), line
-        !     print '(a, a, a)', "CoV radii of '", trim(line), "'"
-        !     get_cov_radii(line, cov_simple, cov_double, cov_triple)
-        !     print '(3i3)', cov_simple, cov_double, cov_triple
-        ! end do
 
         table%num_cov = num_cov
         charge_covalence = table

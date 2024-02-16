@@ -35,7 +35,7 @@ contains
         ! Signature
         character(len=*), intent(in) :: filename
 
-        ! Variable
+        ! Variables
         integer :: i, j, num_args, fd, end, ok
         character(len=128) :: line
 
@@ -63,7 +63,6 @@ contains
                 print '(a,4x,a)', "Error while reading", filename
                 exit
             else
-                !   print '(a,a,a)', "Line read: '", trim(line), "'"
                 if ( trim(line) == "@<TRIPOS>MOLECULE" ) then
                     ! Get molecule name
                     read (fd, '(a)', iostat = end), mol_name
@@ -88,7 +87,6 @@ contains
                 print '(a, a)', "Could not find atom data of: ", filename
                 stop 1
             else
-                ! print '(a,a,a)', "Line read: '", trim(line), "'"
                 if ( trim(line) == "@<TRIPOS>ATOM" ) then
                     exit
                 end if
@@ -119,8 +117,6 @@ contains
             if (end/=0) then
                 print '(a, a)', "Invalid mol2 format of ", filename
                 stop 1
-            else
-                ! print '(a, i4, a, a8, a, 2x, 3(f10.4, 1x))', "Atom data: ", atomNum, ", ", trim(atomType), ", ", x, y, z
             end if
         end do
 

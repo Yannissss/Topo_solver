@@ -62,11 +62,11 @@ contains
                             atom_b%atom, j, " at tolerance ", tol
 
                         ! Add bond to topology
-                        k = calcul_topologie%num_bonds
-                        calcul_topologie%bonds(0, k) = radii_a%atom_num
-                        calcul_topologie%bonds(1, k) = radii_b%atom_num
-                        calcul_topologie%bonds(2, k) = BOND_SIMPLE
-                        calcul_topologie%num_bonds = k + 1
+                        k = calcul_topologie%num_bonds + 1
+                        calcul_topologie%bonds(1, k) = radii_a%atom_num
+                        calcul_topologie%bonds(2, k) = radii_b%atom_num
+                        calcul_topologie%bonds(3, k) = BOND_SIMPLE
+                        calcul_topologie%num_bonds = k
 
                         ! No more possible bond for this atom pair
                         exit

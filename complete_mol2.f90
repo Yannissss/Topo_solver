@@ -23,7 +23,7 @@ program complete_mol2
         print *, 'Error: Unvalid arguments'
         print '(2x, a, 1x, a)', trim(filename), &
             '<Cov_radii> <in_mol2_file> <out_mol2_file> ' // &
-            '<tol_max:0.35> <tol_min:0.01> <tol_step:0.05>'
+            '<tol_max:0.35> <tol_min:0.10> <tol_step:0.05>'
         stop 10
     end if
 

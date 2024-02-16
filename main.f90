@@ -17,11 +17,13 @@ contains
         type(CovTable) :: table
         type(Molecule) :: mol
         type(AtomXYZ) :: atom_xyz
+        type(Topology) :: topo
 
-        if (iargc() /= 2) then
+        if (iargc() /= 3) then
             call getarg(0, filename)
             print *, 'Error: Unvalid arguments'
-            print '(2x, a, 1x, a)', trim(filename), '<Cov_radii> <mol2_file>'
+            print '(2x, a, 1x, a)', trim(filename), &
+                '<Cov_radii> <in_mol2_file> <out_mol2_file>'
             stop 10
         end if
 
@@ -53,7 +55,11 @@ contains
         !     print '(a, 2x, 3i3)', cov%atom, cov%simple, cov%double, cov%triple
         ! end do
 
-        call foo(table, mol, 0.10, 0.35, 0.05)
+        ! Compute topology and save to file
+        call getarg(3, filename)
+        filename = trim(filename)
+        topo = calcul_topologie(table, mol, 0.10, 0.35, 0.05)
+        print *, "Done!"
 
     end subroutine entrypoint
 

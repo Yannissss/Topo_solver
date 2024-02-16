@@ -29,7 +29,10 @@ contains
         type(Covalence) :: radii_a, radii_b
         real :: distance, tol, delta_simple, delta_double, delta_triple
         logical :: valid_topology
+
+        ! OpenMP vars
         double precision :: start_time, end_time, elapsed ! Time utils
+        integer :: num_threads
 
         ! Auxiliary matrices
         ! Delta matrix
@@ -48,10 +51,25 @@ contains
         print '(a, f3.2, a, f3.2, a, f3.2)', "[affiche_topologie] w/ tol_min = ", &
             tol_min, ", tol_max = ", tol_max, ", tol_step = ", tol_step
 
+        !$omp parallel shared(num_threads)
+
+        !$omp master
+        num_threads = omp_get_num_threads()
+        print '(a, i3, a)', "[affiche_topologie] and using ", &
+            num_threads, " thread(s)"
+        !$omp end master
+
+        !$omp end parallel
+
         ! Start stopwatch
         start_time = omp_get_wtime()
 
         ! First we compute the deltas matrix that is independant of the tolerance used
+
+        !$omp parallel &
+        !$omp shared(mol, table, deltas) &
+        !$omp private(i, j, atom_a, atom_b, radii_a, radii_b, distance, delta_simple, delta_double, delta_triple)
+        !$omp do schedule(guided) collapse(1)
         do i=1, mol%num_atoms
             do j=i + 1, mol%num_atoms
                 ! We check if there is a bond between atom A & B
@@ -86,6 +104,8 @@ contains
                 deltas(3, i, j) = delta_triple
             end do
         end do
+        !$omp end do
+        !$omp end parallel
 
         ! Next we try to construct a compliant topology by increasing our
         ! delta tolerance step by stem until atoms are bound
@@ -95,6 +115,12 @@ contains
         k = 0 ! Number of bonds found
         do while ( (.not. valid_topology) .and. (tol <= tol_max) )
             ! Topology enhancement loop
+
+            !$omp parallel &
+            !$omp shared(mol, deltas, atoms_bond) &
+            !$omp private(i, j) &
+            !$omp reduction(+ : k)
+            !$omp do schedule(guided) collapse(1)
             do i=1, mol%num_atoms
                 do j=i + 1, mol%num_atoms
                     ! Check if there is already a bond between these 2 atoms
@@ -114,22 +140,34 @@ contains
                     end if
                 end do
             end do
+            !$omp end do
+            !$omp end parallel
 
             ! Check topology compliance
             ! We just check is there is any atom no bound to anything
             valid_topology = .true.
+
+            !$omp parallel &
+            !$omp shared(atoms_bond) &
+            !$omp private(i) &
+            !$omp reduction(.and. : valid_topology)
+            !$omp do schedule(static)
             do i = 1, mol%num_atoms
                 ! Check if atom i has no bond
                 if (all(atoms_bond(i, :) == 0) &
                     .and. all(atoms_bond(:, i) == 0)) then
 
-                    ! So we increase the tolerance
-                    tol = tol + tol_step
                     ! and continue to search for a solution
                     valid_topology = .false.
-                    exit
                 end if
             end do
+            !$omp end do
+            !$omp end parallel
+
+            ! We increase the tolerance if no valid topology was found
+            if (.not. valid_topology) then
+                tol = tol + tol_step
+            end if
         end do
 
         ! Stop stopwatch

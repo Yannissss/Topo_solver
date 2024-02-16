@@ -22,9 +22,10 @@ contains
 
         real :: dx, dy, dz
 
-        dx = 10.0 * (self%x - other%x)
-        dy = 10.0 * (self%y - other%y)
-        dz = 10.0 * (self%z - other%z)
+        ! Convert Angstrom to picometers (1 A° = 100 pm)
+        dx = 100.0 * (self%x - other%x)
+        dy = 100.0 * (self%y - other%y)
+        dz = 100.0 * (self%z - other%z)
 
         ! Return distance
         compute_dist = sqrt(dx * dx + dy * dy + dz * dz)
@@ -48,7 +49,7 @@ contains
 
         ! Open file
         fd = 101
-        print '(a,a)', "[lecture_mol2] File to read = ", trim(filename)
+        print '(a,a)', "[lecture_mol2] File to read  = ", trim(filename)
         open(unit = fd, file = filename, iostat = ok, status = 'old')
         if ( ok /= 0 ) then
             print '(a,4x,a)', "Error during opening", filename

@@ -4,9 +4,9 @@ module affiche_topologie
 
     implicit none
 
-    integer, parameter :: BOND_SIMPLE = 0
-    integer, parameter :: BOND_DOUBLE = 1
-    integer, parameter :: BOND_TRIPLE = 2
+    integer, parameter :: BOND_SIMPLE = 1
+    integer, parameter :: BOND_DOUBLE = 2
+    integer, parameter :: BOND_TRIPLE = 3
 
     type, public :: Topology
         ! (atom_a_num, atom_b_num, bond_type)
@@ -17,22 +17,36 @@ module affiche_topologie
 contains
 
     type(Topology) function calcul_topologie(table, mol, tol_min, tol_max, tol_step)
+        ! Function signature
         type(CovTable), intent(in) :: table
         type(Molecule), intent(in) :: mol
         real, intent(in) :: tol_min, tol_max, tol_step
 
+        ! Variables
         integer :: i, j, k
-
         type(AtomXYZ) :: atom_a, atom_b
         type(Covalence) :: radii_a, radii_b
         real :: distance, tol, delta_simple, delta_double, delta_triple
+        logical :: valid_topology
 
-        ! Allocate enough space for topology
-        k = mol%num_atoms * mol%num_atoms
-        allocate(calcul_topologie%bonds(3, k))
-        calcul_topologie%num_bonds = 0
+        ! Auxiliary matrices
+        ! Delta matrix
+        real, allocatable, dimension(:, :, :) :: deltas
+        ! Type of chemical bound between atoms i & j / 0 = NO BOUND
+        integer, allocatable, dimension(:, :) :: atoms_bond
+
+
+        ! Allocate auxiliary tables
+        allocate(deltas(3, mol%num_atoms, mol%num_atoms))
+        allocate(atoms_bond(mol%num_atoms, mol%num_atoms))
 
         ! Main loop
+        print '(a, a)', "[affiche_topologie] Solving topology of ", &
+            trim(mol%mol_name)
+        print '(a, f3.2, a, f3.2, a, f3.2)', "[affiche_topologie] w/ tol_min = ", &
+            tol_min, ", tol_max = ", tol_max, ", tol_step = ", tol_step
+
+        ! First we compute the deltas matrix that is independant of the tolerance used
         do i=1, mol%num_atoms
             do j=i + 1, mol%num_atoms
                 ! We check if there is a bond between atom A & B
@@ -45,75 +59,112 @@ contains
                 ! Compute distance in picometers
                 distance = atom_a%compute_dist(atom_b)
 
+                ! Small maths to compute relative distance deltas between two atoms
+                ! d: distance, t: tol, r: radius_a + radius_b
+                ! d in [r(1 - t); r(1 + t)]
+                ! <=> r * (1 - t) <= d <= r * (1 + t)
+                ! <=>  -t * r <= d - r <= t * r
+                ! <=>  -t <= (d - r) / r <= t
+                ! <=> |d - r| / r <= t
+
                 ! Compute delta for differents bond types
-                delta_simple = abs(radii_a%simple + radii_b%simple - distance)
-                delta_double = abs(radii_a%double + radii_b%double - distance)
-                delta_triple = abs(radii_a%triple + radii_b%triple - distance)
+                delta_simple = abs(radii_a%simple + radii_b%simple - distance) &
+                    / (radii_a%simple + radii_b%simple)
+                delta_double = abs(radii_a%double + radii_b%double - distance) &
+                    / (radii_a%double + radii_b%double)
+                delta_triple = abs(radii_a%triple + radii_b%triple - distance) &
+                    / (radii_a%triple + radii_b%triple)
 
-                tol = tol_min
-                ! Tolerance increasing loop
-                do while (tol <= tol_max)
-
-                    ! Check for a simple bond
-                    if (delta_simple <= tol) then
-                        print '(a, a, i3, a, a, i3, a, f3.2)', &
-                            '[affiche_topologie] Found a simple bond bewteen ', &
-                            atom_a%atom, i, ' and ', &
-                            atom_b%atom, j, " at tolerance ", tol
-
-                        ! Add bond to topology
-                        k = calcul_topologie%num_bonds + 1
-                        calcul_topologie%bonds(1, k) = radii_a%atom_num
-                        calcul_topologie%bonds(2, k) = radii_b%atom_num
-                        calcul_topologie%bonds(3, k) = BOND_SIMPLE
-                        calcul_topologie%num_bonds = k
-
-                        ! No more possible bond for this atom pair
-                        exit
-                    end if
-
-                    ! Check for a double bond
-                    if (delta_double <= tol) then
-                        print '(a, a, i3, a, a, i3, a, f3.2)', &
-                            '[affiche_topologie] Found a double bond bewteen ', &
-                            atom_a%atom, i, ' and ', &
-                            atom_b%atom, j, " at tolerance ", tol
-
-                        ! Add bond to topology
-                        k = calcul_topologie%num_bonds + 1
-                        calcul_topologie%bonds(1, k) = radii_a%atom_num
-                        calcul_topologie%bonds(2, k) = radii_b%atom_num
-                        calcul_topologie%bonds(3, k) = BOND_DOUBLE
-                        calcul_topologie%num_bonds = k
-
-                        ! No more possible bond for this atom pair
-                        exit
-                    end if
-
-                    ! Check for a triple bond
-                    if (delta_triple <= tol) then
-                        print '(a, a, i3, a, a, i3, a, f3.2)', &
-                            '[affiche_topologie] Found a triple bond bewteen ', &
-                            atom_a%atom, i, ' and ', &
-                            atom_b%atom, j, " at tolerance ", tol
-                        exit
-
-                        ! Add bond to topology
-                        k = calcul_topologie%num_bonds + 1
-                        calcul_topologie%bonds(1, k) = radii_a%atom_num
-                        calcul_topologie%bonds(2, k) = radii_b%atom_num
-                        calcul_topologie%bonds(3, k) = BOND_TRIPLE
-                        calcul_topologie%num_bonds = k
-
-                        ! No more possible bond for this atom pair
-                    end if
-
-                    ! Increase tolerance
-                    tol = tol + tol_step
-                end do
-
+                ! Store deltas in matrix
+                deltas(1, i, j) = delta_simple
+                deltas(2, i, j) = delta_double
+                deltas(3, i, j) = delta_triple
             end do
         end do
+
+        ! Next we try to construct a compliant topology by increasing our
+        ! delta tolerance step by stem until atoms are bound
+        atoms_bond = 0
+        valid_topology = .false.
+        tol = tol_min
+        k = 0 ! Number of bonds found
+        do while ( (.not. valid_topology) .and. (tol <= tol_max) )
+            ! Topology enhancement loop
+            do i=1, mol%num_atoms
+                do j=i + 1, mol%num_atoms
+                    ! Check if there is already a bond between these 2 atoms
+                    if (atoms_bond(i, j) == 0) then
+                        ! We always check for triple, double and then simple
+                        ! because delta_triple < delta_double < delta_simple
+                        if (deltas(BOND_TRIPLE, i, j) <= tol) then
+                            atoms_bond(i, j) = BOND_TRIPLE
+                            k = k + 1
+                        else if (deltas(BOND_DOUBLE, i, j) <= tol) then
+                            atoms_bond(i, j) = BOND_DOUBLE
+                            k = k + 1
+                        else if (deltas(BOND_SIMPLE, i, j) <= tol) then
+                            atoms_bond(i, j) = BOND_SIMPLE
+                            k = k + 1
+                        end if
+                    end if
+                end do
+            end do
+
+            ! Check topology compliance
+            ! We just check is there is any atom no bound to anything
+            valid_topology = .true.
+            do i = 1, mol%num_atoms
+                ! Check if atom i has no bond
+                if (all(atoms_bond(i, :) == 0) &
+                    .and. all(atoms_bond(:, i) == 0)) then
+
+                    ! So we increase the tolerance
+                    tol = tol + tol_step
+                    ! and continue to search for a solution
+                    valid_topology = .false.
+                    exit
+                end if
+            end do
+        end do
+
+        ! Check if we found a valid topology for molecule
+        if (valid_topology) then
+            ! Build final topology
+            calcul_topologie%num_bonds = k
+            allocate(calcul_topologie%bonds(3, k))
+
+            k = 1
+            do i = 1, mol%num_atoms
+                do j = (i + 1), mol%num_atoms
+                    if (atoms_bond(i, j) /= 0) then
+                        calcul_topologie%bonds(1, k) = i ! atom_a
+                        calcul_topologie%bonds(2, k) = j ! atom_b
+                        calcul_topologie%bonds(3, k) = atoms_bond(i, j) ! bond type
+                        k = k + 1
+                    end if
+                end do
+            end do
+
+            ! Post execution stats
+            print '(a, i2, a)', "[affiche_topologie] Done with max tolerance of ", &
+                int(100.0 * tol), "%"
+            print '(a, i4, a)', "[affiche_topologie] Found ", &
+                calcul_topologie%num_bonds, ' bond(s)'
+
+        else ! Otherwise we could not find a valid topology with our tolerance
+            print '(a, a)', &
+                "[affiche_topologie] Could not found a valid topology for molecule ", &
+                trim(mol%mol_name)
+            print '(a, i2, a)', "[affiche_topologie] with max tolerance of ", &
+                int(100.0 * tol_max), "%"
+
+            ! This means that no valid topology was found
+            calcul_topologie%num_bonds = 0
+        end if
+
+        ! Clean-up
+        deallocate(deltas)
+        deallocate(atoms_bond)
 
     end function calcul_topologie
 

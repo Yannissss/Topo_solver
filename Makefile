@@ -1,13 +1,13 @@
 CC     = ifx
 CFLAGS = -O3 -march=native
 
-EXEC   = target
-OBJS   = lecture_mol2.o chargeur_covalence.o affiche_topologie.o main.o 
+EXEC   = complete_mol2
+OBJS   = lecture_mol2.o chargeur_covalence.o affiche_topologie.o complete_mol2.o 
 
 all: $(EXEC)
 
 run: $(EXEC)
-	-@./$(EXEC) CoV_radii
+	-@./$(EXEC) CoV_radii 1QSN_NO_BOND.mol2 1QSN_SOLVED.mol2
 
 $(EXEC): $(OBJS)
 	-@echo ""

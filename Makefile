@@ -1,5 +1,6 @@
-CC     = ifx
-CFLAGS = -O3 -march=native
+CC      = ifx
+CFLAGS  = -O3 -march=native -fopenmp
+LDFLAFS =
 
 EXEC   = complete_mol2
 OBJS   = lecture_mol2.o chargeur_covalence.o affiche_topologie.o complete_mol2.o 
@@ -13,12 +14,12 @@ $(EXEC): $(OBJS)
 	-@echo ""
 	-@echo "Linking    $(@)"
 	-@echo ""
-	-@$(CC) -o $@ $+
+	-@$(CC) $(CFLAGS) -o $@ $+
 
 %.o: %.f90
 	-@echo ""
 	-@echo "Generating $@"
-	-@$(CC) -c $<
+	-@$(CC) $(CFLAGS) -c $<
 
 
 ###------------------------------

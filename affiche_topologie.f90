@@ -1,6 +1,7 @@
 module affiche_topologie
     use chargeur_covalence
     use lecture_mol2
+    use omp_lib
 
     implicit none
 
@@ -28,6 +29,7 @@ contains
         type(Covalence) :: radii_a, radii_b
         real :: distance, tol, delta_simple, delta_double, delta_triple
         logical :: valid_topology
+        double precision :: start_time, end_time, elapsed ! Time utils
 
         ! Auxiliary matrices
         ! Delta matrix
@@ -45,6 +47,9 @@ contains
             trim(mol%mol_name)
         print '(a, f3.2, a, f3.2, a, f3.2)', "[affiche_topologie] w/ tol_min = ", &
             tol_min, ", tol_max = ", tol_max, ", tol_step = ", tol_step
+
+        ! Start stopwatch
+        start_time = omp_get_wtime()
 
         ! First we compute the deltas matrix that is independant of the tolerance used
         do i=1, mol%num_atoms
@@ -127,6 +132,9 @@ contains
             end do
         end do
 
+        ! Stop stopwatch
+        end_time = omp_get_wtime()
+
         ! Check if we found a valid topology for molecule
         if (valid_topology) then
             ! Build final topology
@@ -160,6 +168,20 @@ contains
 
             ! This means that no valid topology was found
             calcul_topologie%num_bonds = 0
+        end if
+
+        ! Display stopwatch
+        elapsed = end_time - start_time
+
+        write (*, '(a)', advance='no'), "[affiche_topologie] Solver execution done in "
+        if (elapsed >= 1.0d-0) then
+            print '(f5.1, a)', elapsed * 1.0d+0, " s"
+        else if (elapsed >= 1.0d-3) then
+            print '(f5.1, a)', elapsed * 1.0d+3, " ms"
+        else if (elapsed >= 1.0d-6) then
+            print '(f5.1, a)', elapsed * 1.0d+6, " µs"
+        else if (elapsed >= 1.0d-9) then
+            print '(f5.1, a)', elapsed * 1.0d+9, " ns"
         end if
 
         ! Clean-up

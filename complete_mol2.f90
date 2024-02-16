@@ -67,6 +67,9 @@ program complete_mol2
     ! Check if program found a valid topology
     if (topo%num_bonds == 0) then
         stop 1
+    else
+        call getarg(3, filename)
+        print '(a, a)', '[complete_mol2] Writing topology to ', trim(filename)
     end if
 
     ! Save topology in output file
@@ -91,8 +94,6 @@ program complete_mol2
         stop ok
     end if
 
-    print '(a, a)', '[complete_mol2] Writing topology to ', filename
-
     ! Copy first existing content in mol2 file
     do
         read (i, '(a)', iostat = end), line
@@ -116,5 +117,9 @@ program complete_mol2
 
     ! Close out file
     close(j)
+
+    ! Done
+    print '(a)', '[complete_mol2] All done.'
+
 
 end program complete_mol2

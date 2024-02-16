@@ -38,10 +38,10 @@ contains
         character(len=128) :: fileName, line
         integer :: covfile, ok, end, i, j, k
         logical :: test_comment
-    
+
         character(len=2) :: cov_atom
         integer :: cov_atom_num, cov_simple, cov_double, cov_triple
-    
+
         type(CovTable) :: table
         integer :: num_cov
 
@@ -53,7 +53,7 @@ contains
             print '(a,4x,a)', "Error during opening", fileName
             stop 20
         end if
-        
+
         ! skip first section
         do i=1,10
             read (covfile, '(a)', iostat = end), line

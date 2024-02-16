@@ -2,7 +2,7 @@ CC     = ifx
 CFLAGS = -O3 -march=native
 
 EXEC   = target
-OBJS   = lecture_mol2.o chargeur_covalence.o main.o
+OBJS   = lecture_mol2.o chargeur_covalence.o main.o affiche_topologie.o
 
 all: $(EXEC)
 

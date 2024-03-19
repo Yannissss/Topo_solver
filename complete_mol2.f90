@@ -94,10 +94,10 @@ program complete_mol2
         stop ok
     end if
 
-    ! Copy first existing content in mol2 file
+    ! Copy first existing content up to bond info in mol2 file
     do
         read (i, '(a)', iostat = end), line
-        if (end /= 0)then
+        if (end /= 0 .or. trim(line) == "@<TRIPOS>BOND") then
             ! We re are done copying the input file
             exit
         else

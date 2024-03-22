@@ -68,15 +68,7 @@ contains
                     ! Get molecule name
                     read (fd, '(a)', iostat = end), mol_name
                     ! Get atoms numbers
-
-                    ! Small fix to adapt to small numbers
-                    read (fd, '(a)', iostat = end), line
-                    i = index(line, ' ')
-                    if ( i > 0 ) then
-                        line = line(:i)
-                    end if
-                    read(line, *, iostat = end), num_atoms
-
+                    read (fd, '(i5)', iostat = end), num_atoms
                     ! Exit to section 2
                     exit
                 end if
